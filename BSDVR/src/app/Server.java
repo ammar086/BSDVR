@@ -32,7 +32,7 @@ public class Server implements Runnable {
                 }   
             }
         }catch(Exception e){
-            this.router.printException(e, Router.translateID(router.getID()), ne);
+            this.router.printExceptionWithNeighbor(e, Router.translateID(router.getID()), ne);
         }
     }
 }

@@ -40,7 +40,7 @@ public class Client implements Runnable {
                 }
             }
         }catch(Exception e){
-            this.router.printException(e,Router.translateID(router.getID()),ne);
+            this.router.printExceptionWithNeighbor(e,Router.translateID(router.getID()),ne);
             //System.out.printf("\n" + Router.translateID(this.router.getID()) + ":> ");
         }
     }

@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 public class App {
 
     public static Router node;
+    public static Print print;
     public static String[] links;
 
     public static void printInstructions() {
@@ -20,6 +21,7 @@ public class App {
         System.out.println("\n***Binary State Distance Vector Routing Protocol***\n");
         if (args.length >= 2) {
             node = new Router(args[0], args[1]);
+            print = new Print(node);
             links = Arrays.copyOfRange(args, 2, args.length);
         } else {
             System.out.println("Expected: <port e.g 8080> <name e.g Adam>");
@@ -42,30 +44,30 @@ public class App {
                 }
                 node.addLink(inputs[0], Integer.parseInt(inputs[1]), Integer.parseInt(inputs[2]));
             } else if (input.equals("r")) {
-                node.printRouter();
+                print.printRouter();
             } else if(input.equals("l")){
-                node.printLT();
+                print.printLT();
             } else if (input.equals("d")) {
-                node.printDVT(); 
+                print.printDVT(); 
             } else if(input.equals("f")) {
-                node.printFT();
+                print.printFT();
             } else if(input.equals("b")) {
-                node.printMBuffer();
+                print.printMBuffer();
                 //node.printDigests();
             } else if(input.equals("t")) {
-                node.printFBuffer();
+                print.printFBuffer();
             } else if (input.equals("i")) {
                 printInstructions();
             } else if (input.equals("s")) {
-                String [] dest;
+                // TODO: String [] dest;
                 System.out.println("\nEnter file name and destination(s):\n");
                 inputs = in.nextLine().split(" ");
                 while (inputs.length <= 1){
                     System.out.println("\nExpected: <file name e.g apple.jpeg> <destionation(s) e.g 11 or 11 12 13>\n");
                     inputs = in.nextLine().split(" ");
                 }
-                dest = Arrays.copyOfRange(inputs, 1, inputs.length);
-                node.transmitFile(inputs[0], dest);
+                // TODO: dest = Arrays.copyOfRange(inputs, 1, inputs.length);
+                // TODO: node.transmitFile(inputs[0], dest);
             } else if (input.equals("x")) {
                 System.out.println("\nEnter neighbor id(s) or \"ALL\" for disconnecting selective link(s):\n");
                 inputs = in.nextLine().split(" ");

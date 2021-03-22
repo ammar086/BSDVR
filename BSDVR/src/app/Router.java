@@ -1,6 +1,6 @@
 package app;
 
-import java.io.File;
+// import java.io.File;
 import java.net.Socket;
 import java.util.Arrays;
 import java.time.Instant;
@@ -10,12 +10,12 @@ import java.util.ArrayList;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
-import java.io.FileInputStream;
+// import java.io.FileInputStream;
 import java.util.logging.Logger;
-import java.io.BufferedInputStream;
-import java.security.MessageDigest;
+// import java.io.BufferedInputStream;
+// import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
-import java.security.NoSuchAlgorithmException;
+// import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -208,7 +208,7 @@ public class Router {
     }
     public void send(OutputStream out, Message m) {
         String rn = "";
-        Integer sno, type;
+        Integer /*sno,*/ type;
         synchronized(this){                      
             // TODO: synchronizing use of OutputStream and TStat across multiple neighbor threads 
             try {
@@ -432,5 +432,159 @@ public class Router {
         server.close();  // closing listening port
         System.out.println(Router.translateID(id) + " terminated !");
     }
-
+    public Integer getCurrentNextHopFT(Integer dest){
+        if(ft.containsKey(dest)){
+            return (Integer) ft.get(dest).keySet().toArray()[0];
+        }else{
+            return -1;
+        }
+    }
+    public Boolean isValid_ID(Integer id){
+        if(id >= Constants.ID_MIN && id <= Constants.ID_MAX){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    public void removeFakePaths(Integer sender, Integer dest, Vector new_vec){
+        Integer curr_state, curr_next_hop;
+        ArrayList<Integer> dests = new ArrayList<Integer>();
+        for(Integer dst:ft.keySet()){
+            curr_next_hop = getCurrentNextHopFT(dst);
+            curr_state = ft.get(dst).get(curr_next_hop).getState();
+            if(curr_state == 1 && new_vec.getState() == 0){
+                if((sender == curr_next_hop && dest == dst)){
+                    dests.add(dst);
+                }
+                if(sender == dest && lt.get(dest).getLinkState() == 0){
+                    if (curr_next_hop == sender && dest != dst){
+                        dests.add(dst);
+                    }
+                }
+            }
+        }
+        for (Integer m : dvt.keySet()) { // Neighbors
+            for (Integer n : dvt.get(m).keySet()) { // Destinations
+                for(Integer x : dests){
+                    if(n == x){
+                        if(m != n){
+                            curr_next_hop = getCurrentNextHopFT(n);
+                            if(m != curr_next_hop)dvt.get(m).remove(n);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    public void updateDVT(Integer sender/*via*/, Integer dest, Vector new_vec/*nvec*/){
+        Integer link_cost, curr_cost, total_cost;
+        // resolve updates via possible fake paths
+        // TODO: synchronizing access of DVT and FT across multiple neighbor threads
+        synchronized(this){
+            if (ft.containsKey(dest)) {
+                try {
+                    removeFakePaths(sender, dest, new_vec);
+                } catch (Exception e) {
+                    printException(e);
+                }
+            }
+            // resolve normal updates
+            if(lt.containsKey(sender) && dvt.containsKey(sender)){      // TODO: revist use of this validation
+                link_cost = lt.get(sender).getLinkCost();
+                if (dest == sender) {
+                    dvt.get(sender).put(dest, new_vec);
+                    lt.get(sender).setLinkCost(new_vec.getCost());
+                    for (Integer n : dvt.get(sender).keySet()){         // update dvt entries for via
+                        if(dvt.get(sender).containsKey(n)){
+                            curr_cost = dvt.get(sender).get(n).getCost();
+                            dvt.get(sender).get(n).setState(new_vec.getState());
+                            dvt.get(sender).get(n).setCost(curr_cost - link_cost + new_vec.getCost());
+                        }
+                    }
+                } else {
+                    if (new_vec.getCost() == Integer.MAX_VALUE) {
+                        dvt.get(sender).put(dest, new_vec);
+                    } else {
+                        total_cost = link_cost + new_vec.getCost();
+                        new_vec.setCost(total_cost);
+                        dvt.get(sender).put(dest, new_vec);
+                    }
+                }
+            }
+        }
+    }
+    public Boolean isBetter(Vector new_vec, Vector curr_vec) {
+        if (new_vec.getState() == 1) {
+            if (curr_vec.getState() == 1) {
+                return (curr_vec.getCost() <= new_vec.getCost()) ? false : true; // new_vec -- active, curr_vec -- active
+            }
+            return (new_vec.getCost() < Constants.THRESHOLD_COST) ? true : false; // new_vec -- active, curr_vec -- inactive
+        } else {
+            if (curr_vec.getState() == 1) {
+                return (curr_vec.getCost() <= Constants.THRESHOLD_COST) ? false : true; // new_vec -- inactive, curr_vec -- active
+            }
+            return (curr_vec.getCost() <= new_vec.getCost()) ? false : true; // new_vec -- inactive, curr_vec -- inactive
+        }
+    }
+    public void refreshFT(Integer dest, Integer sender) {
+        Vector v;
+        Integer curr_next_hop;
+        ConcurrentHashMap<Integer, Vector> dv = new ConcurrentHashMap<Integer, Vector>();
+        if(dvt.containsKey(sender) && dvt.get(sender).containsKey(dest)){
+            v = new Vector(dvt.get(sender).get(dest));          // update FT entry for curr_next_hop from DVT
+            dv.put(sender, v);
+            ft.put(dest, dv);
+        }else{                                                  // entry removed in DVT
+            curr_next_hop = getCurrentNextHopFT(dest);
+            ft.get(dest).get(curr_next_hop).setState(0);
+        } 
+    }
+    public ArrayList<Integer> computeFT() {
+        Integer curr_next_hop;
+        Vector old_vec, curr_vec, new_vec;
+        ArrayList<Integer> changes = new ArrayList<Integer>();
+        // TODO: synchronizing access of DVT and FT across multiple neighbor threads again
+        synchronized(this){
+            for (Integer m : dvt.keySet()) { // Neighbors
+                for (Integer n : dvt.get(m).keySet()) { // Destinations
+                    ConcurrentHashMap<Integer, Vector> dv = new ConcurrentHashMap<Integer, Vector>();
+                    if (ft.keySet().contains(n)) {                              // entry already exists -- apply precedence rule
+                        try {
+                            curr_next_hop = getCurrentNextHopFT(n);
+                            if(isValid_ID(n)){
+                                if(ft.get(n).containsKey(curr_next_hop)){
+                                    old_vec = new Vector(ft.get(n).get(curr_next_hop));
+                                    refreshFT(n, curr_next_hop);                // apply update (if any) to current entry from dvt
+                                    new_vec = new Vector(dvt.get(m).get(n));
+                                    curr_vec = new Vector(ft.get(n).get(curr_next_hop));
+                                    if (isBetter(new_vec, curr_vec)) {
+                                        dv.put(m, new_vec);
+                                        ft.replace(n, dv);
+                                        if (!changes.contains(n)) {
+                                            changes.add(n);
+                                        }
+                                    } else if (!curr_vec.getCost().equals(old_vec.getCost()) || !curr_vec.getState().equals(old_vec.getState())) {
+                                        if (!changes.contains(n)) {
+                                            changes.add(n);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            printException(e);
+                            // TODO: Is this continue necessary?
+                            // continue;
+                        }
+                    } else { // entry doesnot exist -- append
+                        new_vec = new Vector(dvt.get(m).get(n));
+                        dv.put(m, new_vec);
+                        ft.put(n, dv);
+                        changes.add(n);
+                    }
+                }
+            }
+            changes.remove(getID());
+        }
+        return changes;
+    }
 }

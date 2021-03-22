@@ -176,7 +176,6 @@ public class Tstat { // class to collect network statistics
             ectally.put(eid, ctally);
             estally.put(eid, stally);
             emessages.put(eid, messages);
-            // printStats(eid);
         }
         ctally = new ArrayList<Integer>();
         stally = new ArrayList<Integer>();

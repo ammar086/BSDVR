@@ -6,8 +6,8 @@ import java.text.SimpleDateFormat;
 
 
 public class TSMessage {
-    private long timestampA; //FT
-    private long timestampB; //DVT
+    private long timestampA; // timestamp on arrival of packet
+    private long timestampB; // timestamp on computing changes after arrival of packet
     private Message message;
 
     public TSMessage(Message m, long tsa, long tsb){

@@ -17,7 +17,7 @@ public class Topology {
         System.out.println("initializing topology ...");
         try{
             if(args.length == 1){
-                String f_path = System.getProperty("user.dir")+"/../src/app/Test/topology/"+ args[0]; 
+                String f_path = System.getProperty("user.dir")+"/../src/app/"+ args[0]; 
                 ArrayList<ArrayList<Integer> > links = readfile(f_path);
                 ArrayList<String[]> commands = generateInstances(num_nodes, links);
                 for(String[] c:commands){

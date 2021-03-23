@@ -23,6 +23,20 @@ public class UPDATE extends Message{
         this.num_updates = n;
         this.dvt_updates = udvt;
     }
+    // single update constructor
+    public UPDATE(Integer t, Integer s, Integer r, Integer n, Integer dest, Integer cost, Integer state){
+        super.setSize(24 + n * 12);
+        super.setType(t);
+        this.sender = s;
+        this.receiver = r;
+        this.num_updates = n;
+        ByteBuffer udvt = ByteBuffer.allocate(12);
+        udvt.putInt(dest);
+        udvt.putInt(cost);
+        udvt.putInt(state);
+        this.dvt_updates = udvt.array();
+    }
+
     //getters
     public Integer getType(){return super.getType();}
     public Integer getSender(){return this.sender;}

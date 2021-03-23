@@ -1,8 +1,9 @@
 package app;
 
+import java.time.Instant;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.io.IOException;
 import java.io.BufferedWriter;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -193,5 +194,25 @@ public class Tstat { // class to collect network statistics
             sum = sum + i;
         }
         return sum;
+    }
+
+    public synchronized void sendMessageUpate(Integer type, Message m){
+        Long tmp;
+        countPkt(type-1);
+        tmp = Instant.now().toEpochMilli();
+        countMessages(1, m,tmp,tmp);
+    }
+
+    public synchronized void receiveMessageUpdate(Integer type, Message m, ArrayList<Integer> changes, Long tmp){
+        countPkt(type-1);
+        countBytes(type-1,m);
+        if(changes.isEmpty()){
+            // no changes in FT timestamp
+            countMessages(type,m,tmp,Instant.now().toEpochMilli());
+        }else{
+            // changes in FT timestamp
+            tmp = Instant.now().toEpochMilli();
+            countMessages(type,m,tmp,tmp);
+        }
     }
 }

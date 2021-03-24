@@ -1,21 +1,22 @@
 package app;
 
-// import java.io.File;
+import java.io.File;
 import java.net.Socket;
 import java.util.Arrays;
 import java.time.Instant;
+import java.util.Iterator;
 import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
-// import java.io.FileInputStream;
+import java.io.FileInputStream;
 import java.util.logging.Logger;
-// import java.io.BufferedInputStream;
-// import java.security.MessageDigest;
+import java.io.BufferedInputStream;
+import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
-// import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -581,5 +582,258 @@ public class Router {
             changes.remove(getID());
         }
         return changes;
+    }
+    // TODO: Adding data plane and application functionalites to router [application layer coupled]
+    // reads data file and prepares it for transmission
+    // application layer function
+    public static byte[] readFile(String path) throws IOException {
+        File load_file = new File(path);
+        Long f_size = load_file.length();
+        FileInputStream fis = new FileInputStream(load_file);
+        BufferedInputStream bis = new BufferedInputStream(fis);
+        byte[] f_bytes = new byte[f_size.intValue()];
+        bis.read(f_bytes, 0, f_size.intValue());
+        if (bis != null)
+            bis.close();
+        return f_bytes;
+    }
+    // divides data file bytes into smaller chuncks (MTU) for transmission
+    // application layer function
+    public ArrayList<byte[]> generateChunks(byte[] file) {
+        ArrayList<byte[]> pkts = new ArrayList<byte[]>();
+        Integer start, end, size;
+        start = 0;
+        size = Constants.MTU - (2 * Constants.DIGEST_SIZE) - 40;
+        while (start < file.length) {
+            end = Math.min(file.length, start + size);
+            pkts.add(Arrays.copyOfRange(file, start, end));
+            start += size;
+        }
+        return pkts;
+    }
+    // adds received data packet into a list to reconstruct the received file
+    // application layer function
+    public void addFileChunk(Message m){
+        String file_id;
+        DATA_PAYLOAD dp;
+        Integer total_chunks, chunk_id;
+        ConcurrentHashMap<Integer,byte[]> chunk;
+        dp = (DATA_PAYLOAD)m;
+        chunk_id = dp.getChunkID();
+        total_chunks = dp.getTotalChunks();
+        file_id = new String(dp.getFile());
+        chunk = new ConcurrentHashMap<Integer, byte[]>();
+        chunk.put(chunk_id,dp.writeMessage().array());
+        if(buff_f.containsKey(file_id)){
+            // note: duplication prevented by use of digests
+            if(buff_f.get(file_id).keySet().size() != total_chunks){
+                buff_f.get(file_id).put(chunk_id,dp.writeMessage().array());
+            }
+        }else{
+            buff_f.put(file_id,chunk);
+        }
+    }
+    // creates SHA_256 digests of data payloads for epidemic style routing
+    // data plane function
+    public byte[] generateDigest(byte[] chunk, Integer sender, Integer receiver) throws NoSuchAlgorithmException {
+        MessageDigest algo = MessageDigest.getInstance(Constants.DEFAULT_DIGEST_ALGO);
+        byte[] mess_digest = Arrays.copyOfRange(chunk, 0, chunk.length+8);
+        byte[] src = ByteBuffer.allocate(4).putInt(sender).array();
+        byte[] dst = ByteBuffer.allocate(4).putInt(receiver).array();
+        System.arraycopy(src,0,mess_digest,chunk.length,4);
+        System.arraycopy(dst,0,mess_digest,chunk.length+4,4);
+        return algo.digest(mess_digest);
+    }
+    // updates flag for data packets in the buffer for applyting drop policy
+    // data plane function
+    public void updateFlag(byte[] digest, Integer flag){
+        Integer dst;
+        try {
+            dst = (Integer) this.buff_s.get(digest).keySet().toArray()[0];
+            this.buff_s.get(digest).put(dst,flag);
+        } catch (Exception e) {
+            printException(e);
+        }
+    }
+    // retrieves summary vector for a given destination from all data packets in the buffer
+    // data plane function
+    public ArrayList<byte[]> getSummary(Integer destination){
+        Integer next_hop, curr_dest, pkt_state;
+        ArrayList<byte[]> summary = new ArrayList<byte[]>();
+        for(byte[] digest: buff_s.keySet()){
+            try {
+                curr_dest = (Integer) buff_s.get(digest).keySet().toArray()[0];
+                pkt_state = (Integer) buff_s.get(digest).get(curr_dest);
+                // only retreive summary vector for non-forwarded and inactive-forwarded packets
+                if(ft.containsKey(curr_dest) && pkt_state != 2){
+                    next_hop = (Integer) ft.get(curr_dest).keySet().toArray()[0];
+                    if(destination.equals(curr_dest)){ 
+                        // destination-based [multiple-copy case]
+                        if(destination.equals(next_hop)){
+                            if(pkt_state == 0 || pkt_state == 1){
+                                summary.add(digest); 
+                                // TODO: is this continue necessary?
+                                // continue;
+                            }
+                        }else{
+                        // next-hop-based [single-copy case]
+                            if(pkt_state == 0){
+                                summary.add(digest);
+                                // TODO: is this continue also necessary?
+                                // continue;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                printException(e);
+                continue;
+            }
+        }
+        return summary;
+    }
+    // sends DATA_SUMMARY to a given destination if its data packets are available in a router's buffer
+    // data plane function
+    public void sendSummary(ArrayList<byte[]> summary, Integer destination, Integer mode){
+        Message m;
+        byte[] summary_vec;
+        Integer num_vec, state;
+        OutputStream out;
+        try {
+            state = lt.get(destination).getLinkState();
+            // next-hop reachable
+            if(state == 1){ 
+                num_vec = summary.size();
+                summary_vec = new byte[0];
+                for(byte[] digest: summary){summary_vec = combine(summary_vec, digest);}
+                if(summary_vec.length > 0){
+                    out = lt.get(destination).getWrite(destination);
+                    m = new DATA_SUMMARY(7,id,destination,mode,num_vec, summary_vec);
+                    send(out,m);
+                }
+            }
+        } catch (Exception e) {
+            printException(e);
+        }
+    }
+    // drop data packets from buffer based on their forwarding status
+    // data plane function
+    public void DropPolicy(){
+        byte[] digest, curr_pkt;
+        ArrayList<byte[]> summary;
+        Integer state,dest, next_hop;
+        Iterator<ConcurrentHashMap<byte[],byte[]>> iter;
+        ConcurrentHashMap<byte[],byte[]> pkt,old_active_forwarded,old_inactive_forwarded;
+        // attempt to forward packets before removing them
+        try {
+            dphlock.lock();
+            if(buff_c.size() > 0){
+                for(Integer dst: ft.keySet()){
+                    summary = getSummary(dst);
+                    next_hop = getCurrentNextHopFT(dst);
+                    sendSummary(summary,next_hop,0);
+                }
+            }
+            dphlock.unlock();
+            TimeUnit.MILLISECONDS.sleep(100);
+        } catch (Exception e) {
+            printException(e);
+        }
+        // apply drop policy of removing old atice forwarded packets before
+        // old inactive forwared packets
+        iter = this.buff_c.iterator();
+        old_inactive_forwarded= new ConcurrentHashMap<byte[],byte[]>();
+        old_active_forwarded = new ConcurrentHashMap<byte[],byte[]>();
+        while(iter.hasNext()){
+            try {
+                pkt = iter.next();
+                digest = (byte[]) pkt.keySet().toArray()[0];
+                curr_pkt = (byte[]) pkt.get(digest);
+                dest = (Integer) this.buff_s.get(digest).keySet().toArray()[0];
+                state = this.buff_s.get(digest).get(dest);
+                // finding oldest forwarded packets
+                if(state == 1 && old_inactive_forwarded.size() == 0){ 
+                    // oldest inactive-forwarded
+                    old_inactive_forwarded.put(digest,curr_pkt);
+                }else if(state == 2 && old_active_forwarded.size() == 0){  
+                    // oldest active-forwarded
+                    old_active_forwarded.put(digest,curr_pkt);
+                }
+            } catch (Exception e) {
+                printException(e);
+                continue;
+            }
+        }
+        if(old_active_forwarded.size() != 0 || old_inactive_forwarded.size() != 0){
+            if(old_active_forwarded.size() != 0){
+                digest = (byte[]) old_active_forwarded.keySet().toArray()[0];
+                buff_s.remove(digest);
+                buff_c.remove(old_active_forwarded);
+                System.out.println("Packet Dropped at "+translateID(id)+"\n");
+            }else{
+                digest = (byte[]) old_inactive_forwarded.keySet().toArray()[0];
+                buff_s.remove(digest);
+                buff_c.remove(old_inactive_forwarded);
+                System.out.println("Packet Dropped at "+translateID(id)+"\n");
+            }
+        }
+    }
+    // adds new data packet chunks for transmission into the buffer
+    // data plane function
+    public void addBuffPkt(byte[] digest, byte[] content, Integer destination){
+        ConcurrentHashMap<byte[],byte[]> payload  = new ConcurrentHashMap<byte[],byte[]>();
+        ConcurrentHashMap<Integer,Integer> state = new ConcurrentHashMap<Integer,Integer>();
+        payload.put(digest, content);
+        state.put(destination,0);
+        buff_c.add(payload);
+        buff_s.put(digest,state);
+    }
+    // initiate tranmssion of a file in the data plane
+    // application layer function
+    public void transmitFile(String fname, String[] destinations){
+        System.out.println("\ninitiated transmission of \""+fname+"\" to destination(s): "+Arrays.toString(destinations)+" ...");
+        new Thread(() -> {
+            String file_tag, path;
+            DATA_PAYLOAD dp;
+            ArrayList<byte[]> pkts;
+            Integer iter, dest_iter, curr_dest, total_chunks, chunk_id, chunk_size;
+            byte[] content, digest, payload, file_id, file_bytes;
+            // TODO: DataPacketHandler data_pack = null;
+            try {
+                // path = this.path + "/send/" + fname;
+                path = System.getProperty("user.dir") + "/src/app/Test/data/" + fname;
+                path = path.replace("bin/", "");
+                file_bytes = readFile(path);
+                // generate chunks
+                pkts = generateChunks(file_bytes);
+                total_chunks = pkts.size();
+                file_tag = this.id+"-"+fname;
+                // file_id = fname + src_id
+                file_id = Arrays.copyOfRange(file_tag.getBytes(), 0, Constants.DIGEST_SIZE);
+                iter = 0;
+                while(iter < total_chunks){
+                    // generate data payload messages
+                    dest_iter = 0;
+                    while(dest_iter != destinations.length){
+                        if(Constants.BUFFER_CAPACITY == buff_s.size()){DropPolicy();}
+                        if((Constants.BUFFER_CAPACITY > buff_c.size())){
+                            chunk_id = iter + 1;
+                            chunk_size = pkts.get(iter).length;
+                            curr_dest = Integer.parseInt(destinations[dest_iter]);
+                            payload = Arrays.copyOf(pkts.get(iter), Constants.MTU - (2 * Constants.DIGEST_SIZE) - 40);
+                            digest = generateDigest(payload,this.id,curr_dest);
+                            dp = new DATA_PAYLOAD(8, -1, -1, curr_dest, total_chunks, chunk_id, chunk_size, 16, file_id, digest, payload);
+                            content = dp.writeMessage().array();
+                            addBuffPkt(digest, content, curr_dest);
+                            dest_iter+=1; // next destination
+                        }
+                    }
+                    iter+=1; // next chunk
+                }
+                // TODO: if(data_pack == null){data_pack = new DataPacketHandler(this);}    
+            } catch (Exception e) {
+                printException(e);
+            }
+        }).start();
     }
 }

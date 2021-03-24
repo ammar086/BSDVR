@@ -12,12 +12,12 @@ public class Topology {
     public static Integer id_max = 210;
     public static Integer port_min = 1234;
     public static Integer port_max = 1434;
-    public static String ws_path = System.getProperty("user.dir")+"/";
+    public static String ws_path = System.getProperty("user.dir")+"/bin/";
     public static void main(String[] args){
         System.out.println("initializing topology ...");
         try{
             if(args.length == 1){
-                String f_path = System.getProperty("user.dir")+"/../src/app/"+ args[0]; 
+                String f_path = System.getProperty("user.dir")+"/src/app/"+ args[0]; 
                 ArrayList<ArrayList<Integer> > links = readfile(f_path);
                 ArrayList<String[]> commands = generateInstances(num_nodes, links);
                 for(String[] c:commands){

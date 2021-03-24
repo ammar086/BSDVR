@@ -10,5 +10,5 @@ public class Constants {
     public static Integer DIGEST_SIZE = 20;
     public static String DEFAULT_DIGEST_ALGO = "SHA-1";
     public static Integer THRESHOLD_COST = Integer.MAX_VALUE;
-    public static Integer BUFFER_CAPCITY = Integer.MAX_VALUE;
+    public static Integer BUFFER_CAPACITY = Integer.MAX_VALUE;
 }

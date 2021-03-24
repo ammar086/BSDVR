@@ -210,7 +210,7 @@ public class Router {
         String rn = "";
         Integer /*sno,*/ type;
         synchronized(this){                      
-            // TODO: synchronizing use of OutputStream and TStat across multiple neighbor threads 
+            // synchronizing use of TStat across multiple neighbor threads 
             try {
                 type = m.getType();
                 /* TODO:
@@ -227,40 +227,35 @@ public class Router {
                         rn = Router.translateID(s.getSender());
                         out.write(s.writeMessage().array());
                         out.flush();
-                        debug.countPkt(0);
-                        debug.countMessages(1, m, Instant.now().toEpochMilli(), Instant.now().toEpochMilli());
+                        debug.sendMessageUpate(1,m);
                         break;
                     case 2:
                         SYN_ACK sa = (SYN_ACK) m;
                         rn = Router.translateID(sa.getSender());
                         out.write(sa.writeMessage().array());
                         out.flush();
-                        debug.countPkt(1);
-                        debug.countMessages(2, m, Instant.now().toEpochMilli(), Instant.now().toEpochMilli());
+                        debug.sendMessageUpate(2,m);
                         break;
                     case 3:
                         FIN f = (FIN) m;
                         rn = Router.translateID(f.getSender());
                         out.write(f.writeMessage().array());
                         out.flush();
-                        debug.countPkt(2);
-                        debug.countMessages(3, m, Instant.now().toEpochMilli(), Instant.now().toEpochMilli());
+                        debug.sendMessageUpate(3,m);
                         break;
                     case 4:
                         FIN_ACK fa = (FIN_ACK) m;
                         rn = Router.translateID(fa.getSender());
                         out.write(fa.writeMessage().array());
                         out.flush();
-                        debug.countPkt(3);
-                        debug.countMessages(4, m, Instant.now().toEpochMilli(), Instant.now().toEpochMilli());
+                        debug.sendMessageUpate(4,m);
                         break;
                     case 5:
                         UPDATE u = (UPDATE) m;
                         rn = Router.translateID(u.getSender());
                         out.write(u.writeMessage().array());
                         out.flush();
-                        debug.countPkt(4);
-                        debug.countMessages(5, m, Instant.now().toEpochMilli(), Instant.now().toEpochMilli());
+                        debug.sendMessageUpate(5,m);
                         break;
                     case 6:
                         if(hflag){

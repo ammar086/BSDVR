@@ -24,14 +24,15 @@ public class LinkFailureHandler implements Runnable{
     }
     @Override
     public void run() {
-        // TODO: Boolean flag = false;
+        Boolean flag = false;
         ArrayList<Integer> ch;
         long diff, period, timer;
         timer = Instant.now().toEpochMilli();
-        while(isActive()){                                                       // send HELLO pkts every 5 seconds
+        while(isActive()){
             try{
                 diff = Instant.now().toEpochMilli() - timer;
                 period = TimeUnit.MILLISECONDS.toSeconds(diff);    
+                // send HELLO pkts every 5 seconds
                 if(period == 5){
                     timer = Instant.now().toEpochMilli();
                     Message m = new HELLO(6, router.getID());
@@ -42,7 +43,7 @@ public class LinkFailureHandler implements Runnable{
                 }
             }catch(Exception e){
                 router.printException(e);
-                // TODO: if(!flag)flag = true;
+                if(!flag)flag = true;
                 timer = Instant.now().toEpochMilli();
                 if(e.toString().contains("Broken pipe")){
                     System.out.println("Broken pipe in connection with " + neighbor.toString());
@@ -67,20 +68,11 @@ public class LinkFailureHandler implements Runnable{
             // re-compute ft
             ch = router.computeFT();
             // broadcast changes in ft
-            // TODO: not yet implemented new Protocols().broadcast(router,ch,neighbor,6);
+            new Protocols().broadcast(router,ch,neighbor,6);
             // measurement for convergence time and control traffic
             if(cflag){                                                           // counting FIN and FIN_ACK messages in TStat
                 Message cm = router.getCMessage();
-                router.getCstats().countPkt(cm.getType()-1);
-                router.getCstats().countBytes(cm.getType()-1, cm);
-                if(ch.isEmpty()){
-                    // no changes in FT timestamp
-                    router.getCstats().countMessages(cm.getType(), cm,tmp,Instant.now().toEpochMilli());
-                }else{
-                    // changes in FT timestamp
-                    tmp = Instant.now().toEpochMilli();
-                    router.getCstats().countMessages(cm.getType(), cm,tmp,tmp);
-                }
+                router.getCstats().receiveMessageUpdate(cm.getType(),cm,ch,tmp);
                 cflag = false;
             }
         } catch (Exception e) {

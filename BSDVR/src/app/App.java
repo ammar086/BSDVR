@@ -59,15 +59,15 @@ public class App {
             } else if (input.equals("i")) {
                 printInstructions();
             } else if (input.equals("s")) {
-                // TODO: String [] dest;
+                String [] dest;
                 System.out.println("\nEnter file name and destination(s):\n");
                 inputs = in.nextLine().split(" ");
                 while (inputs.length <= 1){
                     System.out.println("\nExpected: <file name e.g apple.jpeg> <destionation(s) e.g 11 or 11 12 13>\n");
                     inputs = in.nextLine().split(" ");
                 }
-                // TODO: dest = Arrays.copyOfRange(inputs, 1, inputs.length);
-                // TODO: node.transmitFile(inputs[0], dest);
+                dest = Arrays.copyOfRange(inputs, 1, inputs.length);
+                node.transmitFile(inputs[0], dest);
             } else if (input.equals("x")) {
                 System.out.println("\nEnter neighbor id(s) or \"ALL\" for disconnecting selective link(s):\n");
                 inputs = in.nextLine().split(" ");

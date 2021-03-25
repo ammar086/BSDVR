@@ -51,7 +51,7 @@ public class Router {
         this.ucount = 0;
         this.dcount = 0;
         this.dflag = true;
-        this.hflag = true;
+        this.hflag = false;
         // TODO: this.dtnet = null;
         this.id = Integer.parseInt(i);
         this.server = new ServerSocket(Integer.parseInt(p));
@@ -62,7 +62,7 @@ public class Router {
         this.dphlock = new ReentrantLock();
         this.uctlock = new ReentrantLock();
         this.dctlock = new ReentrantLock();
-        this.path = this.path + "/src/app/Test/data/" + this.id;
+        this.path = this.path + "/src/app/Test/data/" + this.id + "/";
         this.buff_c = new ConcurrentLinkedQueue<ConcurrentHashMap<byte[],byte[]>>();
         this.buff_s = new ConcurrentHashMap<byte[],ConcurrentHashMap<Integer,Integer>>();
         this.buff_f = new ConcurrentHashMap<String,ConcurrentHashMap<Integer,byte[]>>();
@@ -666,7 +666,7 @@ public class Router {
                 pkt_state = (Integer) buff_s.get(digest).get(curr_dest);
                 // only retreive summary vector for non-forwarded and inactive-forwarded packets
                 if(ft.containsKey(curr_dest) && pkt_state != 2){
-                    next_hop = (Integer) ft.get(curr_dest).keySet().toArray()[0];
+                    next_hop = getCurrentNextHopFT(curr_dest);
                     if(destination.equals(curr_dest)){ 
                         // destination-based [multiple-copy case]
                         if(destination.equals(next_hop)){
@@ -735,7 +735,7 @@ public class Router {
                 }
             }
             dphlock.unlock();
-            TimeUnit.MILLISECONDS.sleep(100);
+            TimeUnit.MILLISECONDS.sleep(1000);
         } catch (Exception e) {
             printException(e);
         }
@@ -798,10 +798,10 @@ public class Router {
             ArrayList<byte[]> pkts;
             Integer iter, dest_iter, curr_dest, total_chunks, chunk_id, chunk_size;
             byte[] content, digest, payload, file_id, file_bytes;
-            // TODO: DataPacketHandler data_pack = null;
+            DataPacketHandler data_pack = null;
             try {
                 // path = this.path + "/send/" + fname;
-                path = System.getProperty("user.dir") + "/src/app/Test/data/" + fname;
+                path = System.getProperty("user.dir") + "/src/app/Test/data/files/" + fname;
                 path = path.replace("bin/", "");
                 file_bytes = readFile(path);
                 // generate chunks
@@ -830,7 +830,7 @@ public class Router {
                     }
                     iter+=1; // next chunk
                 }
-                // TODO: if(data_pack == null){data_pack = new DataPacketHandler(this);}    
+                if(data_pack == null){data_pack = new DataPacketHandler(this);}    
             } catch (Exception e) {
                 printException(e);
             }

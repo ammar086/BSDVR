@@ -175,7 +175,7 @@ public class Protocols {
         Message reply;
         Vector new_vec;
         ArrayList<Integer> ch;
-        // TODO: DataPacketHandler dp = null;
+        DataPacketHandler dp = null;
         switch (m.getType()) {
             case 1: // SYN
                 SYN s = (SYN)m;
@@ -194,8 +194,8 @@ public class Protocols {
                 broadcast(r,ch,s.getSender(),1);
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(1,m,ch,tmp);
-                // TODO: call data packet handler - on meeting new neighbor
-                // dp = new DataPacketHandler(r, s.getSender());
+                // call data packet handler - on meeting new neighbor
+                dp = new DataPacketHandler(r, s.getSender());
                 break;
             case 2: // SYN_ACK
                 SYN_ACK sa = (SYN_ACK)m;
@@ -211,8 +211,8 @@ public class Protocols {
                 broadcast(r,ch,sa.getSender(),2);
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(2,m,ch,tmp);
-                // TODO: call data packet handler  - on meeting new neighbor
-                // dp = new DataPacketHandler(r, sa.getSender());
+                // call data packet handler  - on meeting new neighbor
+                dp = new DataPacketHandler(r, sa.getSender());
                 break;
             case 3: // FIN
                 FIN f = (FIN) m;
@@ -259,8 +259,8 @@ public class Protocols {
                 }
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(5,m,ch,tmp);
-                // TODO: call data packet handler - on update in ft
-                // if(!ch.isEmpty()){dp = new DataPacketHandler(r, ch);}
+                // call data packet handler - on update in ft
+                if(!ch.isEmpty()){dp = new DataPacketHandler(r, ch);}
                 break;
             case 6: // HELLO
                 HELLO h = (HELLO)m;
@@ -269,15 +269,15 @@ public class Protocols {
                 break;
             case 7:
                 // call data packet handler - on receiving data summary message
-                // dp = new DataPacketHandler(r, false, m);
+                dp = new DataPacketHandler(r, false, m);
                 break;
             case 8:
-                // TODO: call data packet handler - on receiving data payload message
-                // tmp2 = r.getDCount();
-                // r.setDCount(tmp2+1);
-                // dp = new DataPacketHandler(r, true, m);
+                // call data packet handler - on receiving data payload message
+                tmp2 = r.getDCount();
+                r.setDCount(tmp2+1);
+                dp = new DataPacketHandler(r, true, m);
                 break;
         }
-        // TODO: if(dp!=null){dp=null;}
+        if(dp!=null){dp=null;}
     }   
 }

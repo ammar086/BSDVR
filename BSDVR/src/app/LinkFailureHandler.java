@@ -15,10 +15,12 @@ public class LinkFailureHandler implements Runnable{
     }
     public Boolean isActive(){
         if(router.getLT().get(neighbor).getLinkState() == 1){
-            long timer = router.getLT().get(neighbor).getTimer();
-            long timeDiff = Instant.now().toEpochMilli() - timer;
-            long timeElapsed = TimeUnit.MILLISECONDS.toSeconds(timeDiff);
-            if(timeElapsed < 30){return true;}
+            // TODO: turned off for data plane emulation
+            // long timer = router.getLT().get(neighbor).getTimer();
+            // long timeDiff = Instant.now().toEpochMilli() - timer;
+            // long timeElapsed = TimeUnit.MILLISECONDS.toSeconds(timeDiff);
+            // if(timeElapsed < 30){return true;}
+            return true;
         }
         return false;
     }

@@ -251,16 +251,12 @@ public class Protocols {
                 ch = r.computeFT();
                 // broadcast changes
                 broadcast(r, ch, u.getSender(), 5);
-                //propagate new primary path upstream
-                if(stateCount > 0){
-                    new Thread(() -> {
-                        retransmit(u,r);
-                    }).start();
-                }
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(5,m,ch,tmp);
                 // call data packet handler - on update in ft
                 if(!ch.isEmpty()){dp = new DataPacketHandler(r, ch);}
+                //propagate new primary path upstream
+                if(stateCount > 0){retransmit(u,r);}
                 break;
             case 6: // HELLO
                 HELLO h = (HELLO)m;

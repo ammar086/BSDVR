@@ -17,7 +17,7 @@ public class DataPacketHandler {
     private Router router;
     // on receiving DATA_PAYLOAD/DATA_SUMMARY messages
     public DataPacketHandler(Router r, Boolean flag, Message m){
-        this.router = r;
+        router = r;
         router.getDPHLock().lock();
         Boolean prompt_File_Received;
         Integer sender, next_hop, state;
@@ -27,7 +27,7 @@ public class DataPacketHandler {
             // DATA PAYLOAD
             DATA_PAYLOAD dp;
             byte[] digest,content;
-            String file_id, file_path;
+            String file_id;//, file_path;
             Integer total_chunks, dest;
 
             dp = (DATA_PAYLOAD)m;
@@ -43,17 +43,17 @@ public class DataPacketHandler {
                 // add to file
                 router.addFileChunk(m);
                 if(router.getFileBuff().get(file_id).size() == total_chunks){
-                    prompt_File_Received = true;
+                    prompt_File_Received = false;
                     if(prompt_File_Received){
                         System.out.println("\n\n"+Router.translateID(router.getID())+" FILE RECEIVED: "+ file_id+", "+router.getFileBuff().get(file_id).size()+" chunks\n");
                     }
                     // store received file locally
-                    try {
-                        file_path = router.path.replace("bin/", "");
-                        storeFile(file_path, file_id);
-                    } catch (Exception e) {
-                        router.printException(e);
-                    }
+                    // try {
+                    //     file_path = router.path.replace("bin/", "");
+                    //     storeFile(file_path, file_id);
+                    // } catch (Exception e) {
+                    //     router.printException(e);
+                    // }
                 }
             }else{
                 // payload not destined to self
@@ -99,7 +99,7 @@ public class DataPacketHandler {
     }
     // to initiate file transmission from source router
     public DataPacketHandler(Router r){
-        this.router = r;
+        router = r;
         router.getDPHLock().lock();
         Integer next_hop;
         ArrayList<byte[]> summary_vec;
@@ -115,7 +115,7 @@ public class DataPacketHandler {
     }
     // on encountering new neighbor
     public DataPacketHandler(Router r, Integer neighbor){
-        this.router = r;
+        router = r;
         router.getDPHLock().lock();
         // send relevant summary vector
         if(router.getBuffContent().size() > 0){
@@ -127,7 +127,7 @@ public class DataPacketHandler {
     }
     // on update in ft
     public DataPacketHandler(Router r, ArrayList<Integer> changes){
-        this.router = r;
+        router = r;
         router.getDPHLock().lock();
         Integer next_hop;
         ArrayList<byte[]> summary_vec;

@@ -7,31 +7,31 @@ public class FIN_ACK extends Message{
     private Integer receiver;
 
     public FIN_ACK(){
-        this.sender = -1;
-        this.receiver = -1;
+        sender = -1;
+        receiver = -1;
     }
 
     public FIN_ACK(Integer t, Integer s, Integer r){
         super.setSize(20);
         super.setType(t);
-        this.sender = s;
-        this.receiver = r;
+        sender = s;
+        receiver = r;
     }
     //getters
     public Integer getType(){return super.getType();}
-    public Integer getSender(){return this.sender;}
-    public Integer getReceiver(){return this.receiver;}
+    public Integer getSender(){return sender;}
+    public Integer getReceiver(){return receiver;}
     //methods
     public void readMessage(ByteBuffer mess){
         super.readMessage(mess);
-        this.sender = mess.getInt();
-        this.receiver = mess.getInt();
+        sender = mess.getInt();
+        receiver = mess.getInt();
     }
     public ByteBuffer writeMessage(){
         ByteBuffer b = ByteBuffer.allocate(20);
         super.writeMessage(b);
-        b.putInt(this.sender);
-        b.putInt(this.receiver);
+        b.putInt(sender);
+        b.putInt(receiver);
         return b;
     }
     public Boolean isZero(){
@@ -42,11 +42,11 @@ public class FIN_ACK extends Message{
     }
     public void printMessage(){
         super.printMessage();
-        System.out.println(", sender: " +Router.translateID(this.sender)+
-                           ", receiver: " +Router.translateID(this.receiver)+"}");
+        System.out.println(", sender: " +Router.translateID(sender)+
+                           ", receiver: " +Router.translateID(receiver)+"}");
     }
     public String toString(){
-        return super.toString() + ", sender: " +Router.translateID(this.sender)
-                                + ", receiver: " +Router.translateID(this.receiver)+"}";
+        return super.toString() + ", sender: " +Router.translateID(sender)
+                                + ", receiver: " +Router.translateID(receiver)+"}";
     }
 }

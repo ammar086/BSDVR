@@ -78,7 +78,7 @@ public class LinkFailureHandler implements Runnable{
                 cflag = false;
             }
         } catch (Exception e) {
-            this.router.printException(e);
+            router.printException(e);
         }
     }
 }

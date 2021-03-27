@@ -159,12 +159,10 @@ public class Tstat { // class to collect network statistics
             ArrayList<TSMessage> updated;
             if(messages.size() == 5){
                 if(messages.containsKey(type)){
-                    synchronized(this){
-                        updated = messages.get(type);
-                        updated.add(new TSMessage(m,tsa,tsb));
-                        messages.replace(type,updated);
-                        break;
-                    }
+                    updated = messages.get(type);
+                    updated.add(new TSMessage(m,tsa,tsb));
+                    messages.replace(type,updated);
+                    break;
                 }
             }
         }

@@ -10,46 +10,46 @@ public class DATA_SUMMARY extends Message {
     private Integer num;
     private byte[] summary;
     public DATA_SUMMARY(){
-        this.sender = -1;
-        this.receiver = -1;
-        this.mode = -1;
-        this.num = -1;
-        this.summary = null;
+        sender = -1;
+        receiver = -1;
+        mode = -1;
+        num = -1;
+        summary = null;
     }
     public DATA_SUMMARY(Integer t, Integer s, Integer r, Integer m, Integer n, byte[] su){
         super.setSize(28 + n * DIGEST_SIZE);
         super.setType(t);
-        this.sender = s;
-        this.receiver = r;
-        this.mode = m;
-        this.num = n;
-        this.summary = su;
+        sender = s;
+        receiver = r;
+        mode = m;
+        num = n;
+        summary = su;
     }
    //getters
    public Integer getType(){return super.getType();}
-   public Integer getSender(){return this.sender;}
-   public Integer getReceiver(){return this.receiver;}
-   public Integer getMode(){return this.mode;}
-   public Integer getNum(){return this.num;}
-   public byte[] getSummary(){return this.summary;}
+   public Integer getSender(){return sender;}
+   public Integer getReceiver(){return receiver;}
+   public Integer getMode(){return mode;}
+   public Integer getNum(){return num;}
+   public byte[] getSummary(){return summary;}
    //methods
    public void readMessage(ByteBuffer mess){
        super.readMessage(mess);
-       this.sender = mess.getInt();
-       this.receiver = mess.getInt();
-       this.mode = mess.getInt();
-       this.num = mess.getInt();
-       this.summary = new byte[this.num * DIGEST_SIZE];
+       sender = mess.getInt();
+       receiver = mess.getInt();
+       mode = mess.getInt();
+       num = mess.getInt();
+       summary = new byte[num * DIGEST_SIZE];
        mess.get(summary);
    }
    public ByteBuffer writeMessage(){
        Integer s = 28 + num * DIGEST_SIZE;
        ByteBuffer b = ByteBuffer.allocate(s);
        super.writeMessage(b);
-       b.putInt(this.sender);
-       b.putInt(this.receiver);
-       b.putInt(this.mode);
-       b.putInt(this.num);
+       b.putInt(sender);
+       b.putInt(receiver);
+       b.putInt(mode);
+       b.putInt(num);
        b.put(summary);
        return b;
    }
@@ -61,16 +61,16 @@ public class DATA_SUMMARY extends Message {
    }
    public void printMessage(){
        super.printMessage();
-       System.out.println(", sender: " +Router.translateID(this.sender)+
-                          ", receiver: " +Router.translateID(this.receiver)+
-                          ", mode: "+Integer.toString(this.mode)+ 
-                          ", num_vec: "+Integer.toString(this.num)+"}");
+       System.out.println(", sender: " +Router.translateID(sender)+
+                          ", receiver: " +Router.translateID(receiver)+
+                          ", mode: "+Integer.toString(mode)+ 
+                          ", num_vec: "+Integer.toString(num)+"}");
    }
    
    public String toString(){
-        return super.toString() + ", sender: " +Router.translateID(this.sender)
-                                + ", receiver: " +Router.translateID(this.receiver)
-                                + ", mode: "+Integer.toString(this.mode)
-                                + ", num_vec: "+Integer.toString(this.num)+"}";
+        return super.toString() + ", sender: " +Router.translateID(sender)
+                                + ", receiver: " +Router.translateID(receiver)
+                                + ", mode: "+Integer.toString(mode)
+                                + ", num_vec: "+Integer.toString(num)+"}";
    }
 }

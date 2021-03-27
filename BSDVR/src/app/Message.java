@@ -9,30 +9,30 @@ public class Message{
     private String[] types = {"SYN", "SYN-ACK", "FIN", "FIN-ACK", 
                               "UPDATE", "HELLO", "DATA_SUMMARY", "DATA_PAYLOAD"};
     public Message(){
-        this.size = -1;
-        this.type = -1;
-        this.seq = 0;
+        size = -1;
+        type = -1;
+        seq = 0;
     }
     //getters
-    public Integer getType(){return this.type;}
-    public Integer getSize(){return this.size;}
-    public Integer getSequence(){return this.seq;}
-    public String[] getTypes(){return this.types;}
+    public Integer getType(){return type;}
+    public Integer getSize(){return size;}
+    public Integer getSequence(){return seq;}
+    public String[] getTypes(){return types;}
     //setters
-    public void setType(Integer t){this.type = t;}
-    public void setSize(Integer s){this.size = s;}
-    public void setSequence(Integer s){this.seq = s;}
+    public void setType(Integer t){type = t;}
+    public void setSize(Integer s){size = s;}
+    public void setSequence(Integer s){seq = s;}
     //methods
     public void readMessage(ByteBuffer mess){
         mess.rewind();
-        this.size = mess.getInt();
-        this.type = mess.getInt();
-        this.seq = mess.getInt();
+        size = mess.getInt();
+        type = mess.getInt();
+        seq = mess.getInt();
     }
     public ByteBuffer writeMessage(ByteBuffer b){
-        b.putInt(this.size);
-        b.putInt(this.type);
-        b.putInt(this.seq);
+        b.putInt(size);
+        b.putInt(type);
+        b.putInt(seq);
         return b;
     }
     public Boolean isZero(){

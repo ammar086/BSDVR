@@ -48,28 +48,28 @@ public class Router {
     
     public Router(String p, String i) throws IOException {
         // Control Plane
-        this.ucount = 0;
-        this.dcount = 0;
-        this.dflag = true;
-        this.hflag = false;
-        // TODO: this.dtnet = null;
-        this.id = Integer.parseInt(i);
-        this.server = new ServerSocket(Integer.parseInt(p));
-        this.lt = new ConcurrentHashMap<Integer, Neighbor>();
-        this.ft = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>>();
-        this.dvt = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>>();
+        ucount = 0;
+        dcount = 0;
+        dflag = true;
+        hflag = false;
+        // TODO: dtnet = null;
+        id = Integer.parseInt(i);
+        server = new ServerSocket(Integer.parseInt(p));
+        lt = new ConcurrentHashMap<Integer, Neighbor>();
+        ft = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>>();
+        dvt = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>>();
         // Data Plane
-        this.dphlock = new ReentrantLock();
-        this.uctlock = new ReentrantLock();
-        this.dctlock = new ReentrantLock();
-        this.path = this.path + "/src/app/Test/data/" + this.id + "/";
-        this.buff_c = new ConcurrentLinkedQueue<ConcurrentHashMap<byte[],byte[]>>();
-        this.buff_s = new ConcurrentHashMap<byte[],ConcurrentHashMap<Integer,Integer>>();
-        this.buff_f = new ConcurrentHashMap<String,ConcurrentHashMap<Integer,byte[]>>();
+        dphlock = new ReentrantLock();
+        uctlock = new ReentrantLock();
+        dctlock = new ReentrantLock();
+        path = path + "/src/app/Test/data/" + id + "/";
+        buff_c = new ConcurrentLinkedQueue<ConcurrentHashMap<byte[],byte[]>>();
+        buff_s = new ConcurrentHashMap<byte[],ConcurrentHashMap<Integer,Integer>>();
+        buff_f = new ConcurrentHashMap<String,ConcurrentHashMap<Integer,byte[]>>();
         
         // Testing
-        this.debug = new Tstat(this.id);
-        this.cstats = new Tstat(this.id);
+        debug = new Tstat(id);
+        cstats = new Tstat(id);
         // Server-Context
         new Thread(() -> {
             while (true) {
@@ -89,7 +89,7 @@ public class Router {
     // getters
 
     public Integer getID() {
-        return this.id;
+        return id;
     }
     public Tstat getCstats(){
         return cstats;
@@ -110,7 +110,7 @@ public class Router {
         return server;
     }
     public ReentrantLock getDPHLock(){
-        return this.dphlock;
+        return dphlock;
     }
     public static Integer getPort(Integer id) {
         return Constants.PORT_MIN + (id - Constants.ID_MIN);
@@ -119,22 +119,22 @@ public class Router {
         return Constants.ID_MIN + (port - Constants.PORT_MIN);
     }
     public ConcurrentHashMap<Integer, Neighbor> getLT() {
-        return this.lt;
+        return lt;
     }
     public ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>> getFT() {
-        return this.ft;
+        return ft;
     }
     public ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>> getDVT() {
-        return this.dvt;
+        return dvt;
     }
     public ConcurrentLinkedQueue<ConcurrentHashMap<byte[],byte[]>> getBuffContent() {
-        return this.buff_c;
+        return buff_c;
     }
     public ConcurrentHashMap<String,ConcurrentHashMap<Integer,byte[]>> getFileBuff() {
-        return this.buff_f;
+        return buff_f;
     }
     public ConcurrentHashMap<byte[], ConcurrentHashMap<Integer, Integer>> getBuffState() {
-        return this.buff_s;
+        return buff_s;
     }
 
     // methods
@@ -187,12 +187,12 @@ public class Router {
         Long c_t = Instant.now().toEpochMilli();
         Thread l_m = new Thread(new LinkFailureHandler(this, i));
         Neighbor n = new Neighbor(i, l, l_c, l_s, l_m, c_t, c_t, c_r, c_w);
-        this.lt.put(i, n);
+        lt.put(i, n);
         // initialze dvt entry for i
-        if (!this.dvt.containsKey(i)) {
+        if (!dvt.containsKey(i)) {
             ConcurrentHashMap<Integer, Vector> dv = new ConcurrentHashMap<Integer, Vector>();
             dv.put(i, new Vector(l_c, l_s));
-            this.dvt.put(i, dv);
+            dvt.put(i, dv);
         }
         // initiate link manager
         l_m.start();
@@ -209,85 +209,83 @@ public class Router {
     }
     public void send(OutputStream out, Message m) {
         String rn = "";
-        Integer /*sno,*/ type;
-        synchronized(this){                      
-            // synchronizing use of TStat across multiple neighbor threads 
-            try {
-                type = m.getType();
-                /* TODO:
-                if(dtnet != null && type != 6){  // increment sequence
-                    dtnet.getSequenceLock().lock();
-                    sno = dtnet.getSequence();
-                    dtnet.setSequence(sno+1);
-                    m.setSequence(sno+1);
-                    dtnet.getSequenceLock().unlock();
-                }*/
-                switch (type) {
-                    case 1:
-                        SYN s = (SYN) m;
-                        rn = Router.translateID(s.getSender());
-                        out.write(s.writeMessage().array());
+        Integer /*sno,*/ type;        
+        // synchronizing use of TStat across multiple neighbor threads 
+        try {
+            type = m.getType();
+            /* TODO:
+            if(dtnet != null && type != 6){  // increment sequence
+                dtnet.getSequenceLock().lock();
+                sno = dtnet.getSequence();
+                dtnet.setSequence(sno+1);
+                m.setSequence(sno+1);
+                dtnet.getSequenceLock().unlock();
+            }*/
+            switch (type) {
+                case 1:
+                    SYN s = (SYN) m;
+                    rn = Router.translateID(s.getSender());
+                    out.write(s.writeMessage().array());
+                    out.flush();
+                    debug.sendMessageUpate(1,m);
+                    break;
+                case 2:
+                    SYN_ACK sa = (SYN_ACK) m;
+                    rn = Router.translateID(sa.getSender());
+                    out.write(sa.writeMessage().array());
+                    out.flush();
+                    debug.sendMessageUpate(2,m);
+                    break;
+                case 3:
+                    FIN f = (FIN) m;
+                    rn = Router.translateID(f.getSender());
+                    out.write(f.writeMessage().array());
+                    out.flush();
+                    debug.sendMessageUpate(3,m);
+                    break;
+                case 4:
+                    FIN_ACK fa = (FIN_ACK) m;
+                    rn = Router.translateID(fa.getSender());
+                    out.write(fa.writeMessage().array());
+                    out.flush();
+                    debug.sendMessageUpate(4,m);
+                    break;
+                case 5:
+                    UPDATE u = (UPDATE) m;
+                    rn = Router.translateID(u.getSender());
+                    out.write(u.writeMessage().array());
+                    out.flush();
+                    debug.sendMessageUpate(5,m);
+                    break;
+                case 6:
+                    if(hflag){
+                        HELLO h = (HELLO) m;
+                        rn = Router.translateID(h.getSender());
+                        out.write(h.writeMessage().array());
                         out.flush();
-                        debug.sendMessageUpate(1,m);
-                        break;
-                    case 2:
-                        SYN_ACK sa = (SYN_ACK) m;
-                        rn = Router.translateID(sa.getSender());
-                        out.write(sa.writeMessage().array());
+                    }
+                    break;
+                case 7:
+                    if(dflag){
+                        DATA_SUMMARY ds = (DATA_SUMMARY) m;
+                        rn = Router.translateID(ds.getSender());
+                        out.write(ds.writeMessage().array());
                         out.flush();
-                        debug.sendMessageUpate(2,m);
-                        break;
-                    case 3:
-                        FIN f = (FIN) m;
-                        rn = Router.translateID(f.getSender());
-                        out.write(f.writeMessage().array());
+                    }
+                    break;
+                case 8:
+                    if(dflag){
+                        DATA_PAYLOAD dp = (DATA_PAYLOAD) m;
+                        rn = Router.translateID(dp.getSender());
+                        out.write(dp.writeMessage().array());
                         out.flush();
-                        debug.sendMessageUpate(3,m);
-                        break;
-                    case 4:
-                        FIN_ACK fa = (FIN_ACK) m;
-                        rn = Router.translateID(fa.getSender());
-                        out.write(fa.writeMessage().array());
-                        out.flush();
-                        debug.sendMessageUpate(4,m);
-                        break;
-                    case 5:
-                        UPDATE u = (UPDATE) m;
-                        rn = Router.translateID(u.getSender());
-                        out.write(u.writeMessage().array());
-                        out.flush();
-                        debug.sendMessageUpate(5,m);
-                        break;
-                    case 6:
-                        if(hflag){
-                            HELLO h = (HELLO) m;
-                            rn = Router.translateID(h.getSender());
-                            out.write(h.writeMessage().array());
-                            out.flush();
-                        }
-                        break;
-                    case 7:
-                        if(dflag){
-                            DATA_SUMMARY ds = (DATA_SUMMARY) m;
-                            rn = Router.translateID(ds.getSender());
-                            out.write(ds.writeMessage().array());
-                            out.flush();
-                        }
-                        break;
-                    case 8:
-                        if(dflag){
-                            DATA_PAYLOAD dp = (DATA_PAYLOAD) m;
-                            rn = Router.translateID(dp.getSender());
-                            out.write(dp.writeMessage().array());
-                            out.flush();
-                        }
-                        break;
-                }
-            } catch (Exception e) {
-                printExceptionWithNeighbor(e,Router.translateID(id),rn);
-                if(!(e.toString().contains("Broken pipe") || e.toString().contains("Socket closed"))){
-                    e.printStackTrace();
-                }
+                    }
+                    break;
+            }
+        } catch (Exception e) {
+            printExceptionWithNeighbor(e,Router.translateID(id),rn);
+            if(!(e.toString().contains("Broken pipe") || e.toString().contains("Socket closed"))){
+                e.printStackTrace();
             }
         }
     }
@@ -373,10 +371,10 @@ public class Router {
     }
     public void disconnect(String[] nid) throws InterruptedException, IOException {
         if(nid.length == 1 && nid[0].equals("ALL")){
-            for (Integer n : this.lt.keySet()) {
-                if (this.lt.get(n).getLinkState() == 1) {
-                    Message m = new FIN(3, this.id, n);
-                    OutputStream out = this.lt.get(n).getWrite(n);
+            for (Integer n : lt.keySet()) {
+                if (lt.get(n).getLinkState() == 1) {
+                    Message m = new FIN(3, id, n);
+                    OutputStream out = lt.get(n).getWrite(n);
                     send(out, m);
                     TimeUnit.MILLISECONDS.sleep(500);
                 }
@@ -384,10 +382,10 @@ public class Router {
         }else if(nid.length >= 1){
             for(String s:nid){
                 Integer l = Integer.parseInt(s);
-                if(this.lt.containsKey(l)){
-                    if (this.lt.get(l).getLinkState() == 1) {
-                        Message m = new FIN(3, this.id, l);
-                        OutputStream out = this.lt.get(l).getWrite(l);
+                if(lt.containsKey(l)){
+                    if (lt.get(l).getLinkState() == 1) {
+                        Message m = new FIN(3, id, l);
+                        OutputStream out = lt.get(l).getWrite(l);
                         send(out, m);
                         TimeUnit.MILLISECONDS.sleep(500);
                     } 
@@ -399,9 +397,9 @@ public class Router {
         Integer l, port, cost;
         String ip = "localhost";
         if(nid.length == 1 && nid[0].equals("ALL")){
-            for (Integer n : this.lt.keySet()) {
-                if(this.lt.get(n).getLinkState() == 0){
-                    cost = this.lt.get(n).getLinkCost();
+            for (Integer n : lt.keySet()) {
+                if(lt.get(n).getLinkState() == 0){
+                    cost = lt.get(n).getLinkCost();
                     port = getPort(n);
                     addLink(ip, port, cost);
                     TimeUnit.MILLISECONDS.sleep(500);
@@ -410,9 +408,9 @@ public class Router {
         }else if(nid.length >= 1){
             for(String s:nid){
                 l = Integer.parseInt(s);
-                if(this.lt.containsKey(l)){
-                    if(this.lt.get(l).getLinkState() == 0){
-                        cost = this.lt.get(l).getLinkCost();
+                if(lt.containsKey(l)){
+                    if(lt.get(l).getLinkState() == 0){
+                        cost = lt.get(l).getLinkCost();
                         port = getPort(l);
                         addLink(ip, port, cost);
                         TimeUnit.MILLISECONDS.sleep(500);
@@ -472,39 +470,37 @@ public class Router {
             }
         }
     }
-    public void updateDVT(Integer sender/*via*/, Integer dest, Vector new_vec/*nvec*/){
+    public synchronized void updateDVT(Integer sender/*via*/, Integer dest, Vector new_vec/*nvec*/){
         Integer link_cost, curr_cost, total_cost;
         // resolve updates via possible fake paths
         // TODO: synchronizing access of DVT and FT across multiple neighbor threads
-        synchronized(this){
-            if (ft.containsKey(dest)) {
-                try {
-                    removeFakePaths(sender, dest, new_vec);
-                } catch (Exception e) {
-                    printException(e);
-                }
+        if (ft.containsKey(dest)) {
+            try {
+                removeFakePaths(sender, dest, new_vec);
+            } catch (Exception e) {
+                printException(e);
             }
-            // resolve normal updates
-            if(lt.containsKey(sender) && dvt.containsKey(sender)){      // TODO: revist use of this validation
-                link_cost = lt.get(sender).getLinkCost();
-                if (dest == sender) {
+        }
+        // resolve normal updates
+        if(lt.containsKey(sender) && dvt.containsKey(sender)){      // TODO: revist use of this validation
+            link_cost = lt.get(sender).getLinkCost();
+            if (dest == sender) {
+                dvt.get(sender).put(dest, new_vec);
+                lt.get(sender).setLinkCost(new_vec.getCost());
+                for (Integer n : dvt.get(sender).keySet()){         // update dvt entries for via
+                    if(dvt.get(sender).containsKey(n)){
+                        curr_cost = dvt.get(sender).get(n).getCost();
+                        dvt.get(sender).get(n).setState(new_vec.getState());
+                        dvt.get(sender).get(n).setCost(curr_cost - link_cost + new_vec.getCost());
+                    }
+                }
+            } else {
+                if (new_vec.getCost() == Integer.MAX_VALUE) {
                     dvt.get(sender).put(dest, new_vec);
-                    lt.get(sender).setLinkCost(new_vec.getCost());
-                    for (Integer n : dvt.get(sender).keySet()){         // update dvt entries for via
-                        if(dvt.get(sender).containsKey(n)){
-                            curr_cost = dvt.get(sender).get(n).getCost();
-                            dvt.get(sender).get(n).setState(new_vec.getState());
-                            dvt.get(sender).get(n).setCost(curr_cost - link_cost + new_vec.getCost());
-                        }
-                    }
                 } else {
-                    if (new_vec.getCost() == Integer.MAX_VALUE) {
-                        dvt.get(sender).put(dest, new_vec);
-                    } else {
-                        total_cost = link_cost + new_vec.getCost();
-                        new_vec.setCost(total_cost);
-                        dvt.get(sender).put(dest, new_vec);
-                    }
+                    total_cost = link_cost + new_vec.getCost();
+                    new_vec.setCost(total_cost);
+                    dvt.get(sender).put(dest, new_vec);
                 }
             }
         }
@@ -535,52 +531,50 @@ public class Router {
             ft.get(dest).get(curr_next_hop).setState(0);
         } 
     }
-    public ArrayList<Integer> computeFT() {
+    public synchronized ArrayList<Integer> computeFT() {
         Integer curr_next_hop;
         Vector old_vec, curr_vec, new_vec;
         ArrayList<Integer> changes = new ArrayList<Integer>();
         // TODO: synchronizing access of DVT and FT across multiple neighbor threads again
-        synchronized(this){
-            for (Integer m : dvt.keySet()) { // Neighbors
-                for (Integer n : dvt.get(m).keySet()) { // Destinations
-                    ConcurrentHashMap<Integer, Vector> dv = new ConcurrentHashMap<Integer, Vector>();
-                    if (ft.keySet().contains(n)) {                              // entry already exists -- apply precedence rule
-                        try {
-                            curr_next_hop = getCurrentNextHopFT(n);
-                            if(isValid_ID(n)){
-                                if(ft.get(n).containsKey(curr_next_hop)){
-                                    old_vec = new Vector(ft.get(n).get(curr_next_hop));
-                                    refreshFT(n, curr_next_hop);                // apply update (if any) to current entry from dvt
-                                    new_vec = new Vector(dvt.get(m).get(n));
-                                    curr_vec = new Vector(ft.get(n).get(curr_next_hop));
-                                    if (isBetter(new_vec, curr_vec)) {
-                                        dv.put(m, new_vec);
-                                        ft.replace(n, dv);
-                                        if (!changes.contains(n)) {
-                                            changes.add(n);
-                                        }
-                                    } else if (!curr_vec.getCost().equals(old_vec.getCost()) || !curr_vec.getState().equals(old_vec.getState())) {
-                                        if (!changes.contains(n)) {
-                                            changes.add(n);
-                                        }
+        for (Integer m : dvt.keySet()) { // Neighbors
+            for (Integer n : dvt.get(m).keySet()) { // Destinations
+                ConcurrentHashMap<Integer, Vector> dv = new ConcurrentHashMap<Integer, Vector>();
+                if (ft.keySet().contains(n)) {                              // entry already exists -- apply precedence rule
+                    try {
+                        curr_next_hop = getCurrentNextHopFT(n);
+                        if(isValid_ID(n)){
+                            if(ft.get(n).containsKey(curr_next_hop)){
+                                old_vec = new Vector(ft.get(n).get(curr_next_hop));
+                                refreshFT(n, curr_next_hop);                // apply update (if any) to current entry from dvt
+                                new_vec = new Vector(dvt.get(m).get(n));
+                                curr_vec = new Vector(ft.get(n).get(curr_next_hop));
+                                if (isBetter(new_vec, curr_vec)) {
+                                    dv.put(m, new_vec);
+                                    ft.replace(n, dv);
+                                    if (!changes.contains(n)) {
+                                        changes.add(n);
+                                    }
+                                } else if (!curr_vec.getCost().equals(old_vec.getCost()) || !curr_vec.getState().equals(old_vec.getState())) {
+                                    if (!changes.contains(n)) {
+                                        changes.add(n);
                                     }
                                 }
                             }
-                        } catch (Exception e) {
-                            printException(e);
-                            // TODO: Is this continue necessary?
-                            // continue;
                         }
-                    } else { // entry doesnot exist -- append
-                        new_vec = new Vector(dvt.get(m).get(n));
-                        dv.put(m, new_vec);
-                        ft.put(n, dv);
-                        changes.add(n);
+                    } catch (Exception e) {
+                        printException(e);
+                        // TODO: Is this continue necessary?
+                        // continue;
                     }
+                } else { // entry doesnot exist -- append
+                    new_vec = new Vector(dvt.get(m).get(n));
+                    dv.put(m, new_vec);
+                    ft.put(n, dv);
+                    changes.add(n);
                 }
             }
-            changes.remove(getID());
         }
+        changes.remove(getID());
         return changes;
     }
     // TODO: Adding data plane and application functionalites to router [application layer coupled]
@@ -649,8 +643,8 @@ public class Router {
     public void updateFlag(byte[] digest, Integer flag){
         Integer dst;
         try {
-            dst = (Integer) this.buff_s.get(digest).keySet().toArray()[0];
-            this.buff_s.get(digest).put(dst,flag);
+            dst = (Integer) buff_s.get(digest).keySet().toArray()[0];
+            buff_s.get(digest).put(dst,flag);
         } catch (Exception e) {
             printException(e);
         }
@@ -741,7 +735,7 @@ public class Router {
         }
         // apply drop policy of removing old atice forwarded packets before
         // old inactive forwared packets
-        iter = this.buff_c.iterator();
+        iter = buff_c.iterator();
         old_inactive_forwarded= new ConcurrentHashMap<byte[],byte[]>();
         old_active_forwarded = new ConcurrentHashMap<byte[],byte[]>();
         while(iter.hasNext()){
@@ -749,8 +743,8 @@ public class Router {
                 pkt = iter.next();
                 digest = (byte[]) pkt.keySet().toArray()[0];
                 curr_pkt = (byte[]) pkt.get(digest);
-                dest = (Integer) this.buff_s.get(digest).keySet().toArray()[0];
-                state = this.buff_s.get(digest).get(dest);
+                dest = (Integer) buff_s.get(digest).keySet().toArray()[0];
+                state = buff_s.get(digest).get(dest);
                 // finding oldest forwarded packets
                 if(state == 1 && old_inactive_forwarded.size() == 0){ 
                     // oldest inactive-forwarded
@@ -800,14 +794,14 @@ public class Router {
             byte[] content, digest, payload, file_id, file_bytes;
             DataPacketHandler data_pack = null;
             try {
-                // path = this.path + "/send/" + fname;
+                // path = path + "/send/" + fname;
                 path = System.getProperty("user.dir") + "/src/app/Test/data/files/" + fname;
                 path = path.replace("bin/", "");
                 file_bytes = readFile(path);
                 // generate chunks
                 pkts = generateChunks(file_bytes);
                 total_chunks = pkts.size();
-                file_tag = this.id+"-"+fname;
+                file_tag = id+"-"+fname;
                 // file_id = fname + src_id
                 file_id = Arrays.copyOfRange(file_tag.getBytes(), 0, Constants.DIGEST_SIZE);
                 iter = 0;
@@ -821,7 +815,7 @@ public class Router {
                             chunk_size = pkts.get(iter).length;
                             curr_dest = Integer.parseInt(destinations[dest_iter]);
                             payload = Arrays.copyOf(pkts.get(iter), Constants.MTU - (2 * Constants.DIGEST_SIZE) - 40);
-                            digest = generateDigest(payload,this.id,curr_dest);
+                            digest = generateDigest(payload,id,curr_dest);
                             dp = new DATA_PAYLOAD(8, -1, -1, curr_dest, total_chunks, chunk_id, chunk_size, 16, file_id, digest, payload);
                             content = dp.writeMessage().array();
                             addBuffPkt(digest, content, curr_dest);

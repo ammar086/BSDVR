@@ -190,10 +190,10 @@ public class Protocols {
                 r.updateDVT(s.getSender(),s.getSender(),new_vec);
                 // re-compute ft
                 ch = r.computeFT();
-                // broadcast changes
-                broadcast(r,ch,s.getSender(),1);
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(1,m,ch,tmp);
+                // broadcast changes
+                broadcast(r,ch,s.getSender(),1);
                 // call data packet handler - on meeting new neighbor
                 dp = new DataPacketHandler(r, s.getSender());
                 break;
@@ -207,10 +207,10 @@ public class Protocols {
                 r.updateDVT(sa.getSender(),sa.getSender(),new_vec);
                 // re-compute ft
                 ch = r.computeFT();
-                // broadcast changes
-                broadcast(r,ch,sa.getSender(),2);
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(2,m,ch,tmp);
+                // broadcast changes
+                broadcast(r,ch,sa.getSender(),2);
                 // call data packet handler  - on meeting new neighbor
                 dp = new DataPacketHandler(r, sa.getSender());
                 break;
@@ -249,10 +249,10 @@ public class Protocols {
                 }
                 // re-compute ft
                 ch = r.computeFT();
-                // broadcast changes
-                broadcast(r, ch, u.getSender(), 5);
                 // measurement for convergence time and control traffic
                 r.getCstats().receiveMessageUpdate(5,m,ch,tmp);
+                // broadcast changes
+                broadcast(r, ch, u.getSender(), 5);
                 // call data packet handler - on update in ft
                 if(!ch.isEmpty()){dp = new DataPacketHandler(r, ch);}
                 //propagate new primary path upstream

@@ -197,6 +197,7 @@ public class Tstat { // class to collect network statistics
     public synchronized void sendMessageUpate(Integer type, Message m){
         Long tmp;
         countPkt(type-1);
+        countBytes(type-1, m);
         tmp = Instant.now().toEpochMilli();
         countMessages(1, m,tmp,tmp);
     }

@@ -69,14 +69,14 @@ public class LinkFailureHandler implements Runnable{
             router.updateDVT(neighbor, neighbor, new Vector(cost, 0));           // fake path rule invoked for just neighbor
             // re-compute ft
             ch = router.computeFT();
-            // broadcast changes in ft
-            new Protocols().broadcast(router,ch,neighbor,6);
             // measurement for convergence time and control traffic
             if(cflag){                                                           // counting FIN and FIN_ACK messages in TStat
                 Message cm = router.getCMessage();
                 router.getCstats().receiveMessageUpdate(cm.getType(),cm,ch,tmp);
                 cflag = false;
             }
+            // broadcast changes in ft
+            new Protocols().broadcast(router,ch,neighbor,6);
         } catch (Exception e) {
             router.printException(e);
         }

@@ -122,7 +122,10 @@ public class Protocols {
                                         // send immediate reply
                                         curr_dest_state = r.getFT().get(curr_dest).get(next_hop).getState();
                                         m = new UPDATE(5,r.getID(),neighbor,1,curr_dest,curr_dest_cost_c1,curr_dest_state);
-                                        if(!r.getLT().get(neighbor).getSocket().isClosed()){r.send(out,m);}
+                                        if(!r.getLT().get(neighbor).getSocket().isClosed()){
+                                            r.getDCstats().pendingReplyUpdate(m);
+                                            r.send(out,m);
+                                        }
                                     }else{
                                         // start queue for pending reply timer
                                         old_vec_rt.add(curr_dest);
@@ -161,7 +164,10 @@ public class Protocols {
                         vec_available.putInt(curr_dest_state);
                     }
                     m = new UPDATE(5,r.getID(),neighbor,final_vec_rt.size(),vec_available.array());
-                    if(!r.getLT().get(neighbor).getSocket().isClosed()){r.send(out,m);}
+                    if(!r.getLT().get(neighbor).getSocket().isClosed()){
+                        r.getDCstats().pendingReplyUpdate(m);
+                        r.send(out,m);
+                    }
                 }
             }
         } catch (Exception e) {

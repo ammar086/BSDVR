@@ -225,37 +225,37 @@ public class Router {
                 case 1:
                     SYN s = (SYN) m;
                     rn = Router.translateID(s.getSender());
+                    debug.sendMessageUpate(1,m);
                     out.write(s.writeMessage().array());
                     out.flush();
-                    debug.sendMessageUpate(1,m);
                     break;
                 case 2:
                     SYN_ACK sa = (SYN_ACK) m;
                     rn = Router.translateID(sa.getSender());
+                    debug.sendMessageUpate(2,m);
                     out.write(sa.writeMessage().array());
                     out.flush();
-                    debug.sendMessageUpate(2,m);
                     break;
                 case 3:
                     FIN f = (FIN) m;
                     rn = Router.translateID(f.getSender());
+                    debug.sendMessageUpate(3,m);
                     out.write(f.writeMessage().array());
                     out.flush();
-                    debug.sendMessageUpate(3,m);
                     break;
                 case 4:
                     FIN_ACK fa = (FIN_ACK) m;
                     rn = Router.translateID(fa.getSender());
+                    debug.sendMessageUpate(4,m);
                     out.write(fa.writeMessage().array());
                     out.flush();
-                    debug.sendMessageUpate(4,m);
                     break;
                 case 5:
                     UPDATE u = (UPDATE) m;
                     rn = Router.translateID(u.getSender());
+                    debug.sendMessageUpate(5,m);
                     out.write(u.writeMessage().array());
                     out.flush();
-                    debug.sendMessageUpate(5,m);
                     break;
                 case 6:
                     if(hflag){

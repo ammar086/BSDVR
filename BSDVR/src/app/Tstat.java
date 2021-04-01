@@ -14,8 +14,12 @@ public class Tstat { // class to collect network statistics
     private ReentrantLock lockB;
     private ArrayList<Integer> ctally;
     private ArrayList<Integer> stally;
+    private Integer reply_update_count;
+    private Integer reply_update_bytes;
     private ConcurrentHashMap<Integer, ArrayList<TSMessage>> messages;
     // stats per experiment
+    private ConcurrentHashMap<Integer, Integer> eructally;
+    private ConcurrentHashMap<Integer, Integer> erustally;
     private ConcurrentHashMap<Integer, ArrayList<Integer>> ectally;
     private ConcurrentHashMap<Integer, ArrayList<Integer>> estally;
     private ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, ArrayList<TSMessage>>> emessages;
@@ -25,15 +29,27 @@ public class Tstat { // class to collect network statistics
         lockB = new ReentrantLock();
         ctally = new ArrayList<Integer>();
         stally = new ArrayList<Integer>();
+        eructally = new ConcurrentHashMap<Integer, Integer>();
+        erustally = new ConcurrentHashMap<Integer, Integer>();
         ectally = new ConcurrentHashMap<Integer, ArrayList<Integer>>();
         estally = new ConcurrentHashMap<Integer, ArrayList<Integer>>();
         messages = new ConcurrentHashMap<Integer, ArrayList<TSMessage>>();
         emessages = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, ArrayList<TSMessage>>>();
+        reply_update_count = 0;
+        reply_update_bytes = 0;
         for (Integer i = 0; i < 5; i++) {
             ctally.add(0);
             stally.add(0);
             messages.put(i + 1, new ArrayList<TSMessage>());
         }
+    }
+
+    public ConcurrentHashMap<Integer, Integer> getReplyUpdateCTally(){
+        return eructally;
+    }
+
+    public ConcurrentHashMap<Integer, Integer> getReplyUpdateSTally(){
+        return erustally;
     }
 
     public ConcurrentHashMap<Integer, ArrayList<Integer>> getCTally() {
@@ -113,7 +129,8 @@ public class Tstat { // class to collect network statistics
                 if(i == eid){
                     System.out.println(
                         i + " " + ectally.get(i) + " " + sumTally(ectally.get(i)) +
-                        " " + estally.get(i) + " " + sumTally(estally.get(i))
+                        " " + estally.get(i) + " " + sumTally(estally.get(i)) +
+                        " " + eructally.get(i) + " " + erustally.get(i)
                     );
                 }
             }
@@ -130,7 +147,6 @@ public class Tstat { // class to collect network statistics
     }
 
     public void countPkt(Integer pid){
-        lockB.lock();
         while(true){
             if(ctally.size() == 5){
                 if(pid >= 0 && pid < 5 ){
@@ -139,7 +155,6 @@ public class Tstat { // class to collect network statistics
                 break;
             }
         }
-        lockB.unlock();
     }
 
     public void countBytes(Integer pid, Message m){
@@ -154,7 +169,6 @@ public class Tstat { // class to collect network statistics
     }
 
     public void countMessages(Integer type, Message m, long tsa, long tsb){
-        lockA.lock();
         while(true){
             ArrayList<TSMessage> updated;
             if(messages.size() == 5){
@@ -166,7 +180,6 @@ public class Tstat { // class to collect network statistics
                 }
             }
         }
-        lockA.unlock();
     }
 
     public void addEvent(Integer eid){
@@ -174,10 +187,14 @@ public class Tstat { // class to collect network statistics
         if(eid >= 0){
             ectally.put(eid, ctally);
             estally.put(eid, stally);
+            eructally.put(eid, reply_update_count);
+            erustally.put(eid, reply_update_bytes);
             emessages.put(eid, messages);
         }
         ctally = new ArrayList<Integer>();
         stally = new ArrayList<Integer>();
+        reply_update_count = 0;
+        reply_update_bytes = 0;
         messages = new ConcurrentHashMap<Integer, ArrayList<TSMessage>>(); 
         for(Integer i = 0; i < 5; i ++){
             ctally.add(0);
@@ -194,9 +211,15 @@ public class Tstat { // class to collect network statistics
         return sum;
     }
 
+    public synchronized void pendingReplyUpdate(Message m){
+        reply_update_count += 1;
+        reply_update_bytes += m.getSize();
+    }
+
     public synchronized void sendMessageUpate(Integer type, Message m){
         Long tmp;
         countPkt(type-1);
+        countBytes(type-1, m);
         tmp = Instant.now().toEpochMilli();
         countMessages(1, m,tmp,tmp);
     }

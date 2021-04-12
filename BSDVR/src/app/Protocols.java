@@ -85,9 +85,8 @@ public class Protocols {
         Long tmp;
         Message m;
         OutputStream out;
-        // long timer, timeElapsed, timeDiff;
-        ByteBuffer vec_in_update/*, vec_available*/;
-        ArrayList<Integer> old_vec_rt/*, final_vec_rt*/;
+        ByteBuffer vec_in_update;
+        ArrayList<Integer> old_vec_rt;
         Integer neighbor, num_updates, next_hop, curr_dest, curr_cost_c2, curr_state;
         Integer next_hop_cost_l2, curr_dest_cost_c1, next_hop_curr_dest_cost_c3, next_hop_neighbor_cost_c5, curr_dest_state;
         neighbor = u.getSender();
@@ -97,7 +96,6 @@ public class Protocols {
             if(r.getLT().get(neighbor).getLinkState() == 1){
                 num_updates = u.getNUpdates();
                 old_vec_rt = new ArrayList<Integer>();
-                //final_vec_rt = new ArrayList<Integer>();
                 vec_in_update = ByteBuffer.wrap(u.getUpdates());
                 for(int i = 0; i < num_updates; i++){
                     curr_dest = vec_in_update.getInt();
@@ -138,40 +136,6 @@ public class Protocols {
                 }
                 tmp = Instant.now().toEpochMilli();
                 r.getPRQ().insertReply(tmp, neighbor, old_vec_rt);
-                // if(old_vec_rt.size() > 0){
-                //     // invoke peinding reply timer
-                //     timeElapsed = 0;
-                //     timer = Instant.now().toEpochMilli();
-                //     while(timeElapsed < Constants.TIMER_BASE){
-                //         timeDiff = Instant.now().toEpochMilli() - timer;
-                //         timeElapsed = TimeUnit.MILLISECONDS.toMillis(timeDiff);
-                //     }
-                //     // seperate active entries avaialble
-                //     for(Integer dest:old_vec_rt){
-                //         if(r.getFT().containsKey(dest)){
-                //             next_hop = r.getCurrentNextHopFT(dest);
-                //             curr_dest_state = r.getFT().get(dest).get(next_hop).getState();
-                //             if(curr_dest_state == 1){
-                //                 final_vec_rt.add(dest);
-                //             }
-                //         }
-                //     }
-                //     // send reply for pending active entries available
-                //     vec_available = ByteBuffer.allocate(final_vec_rt.size() * 12);
-                //     for(Integer dest:final_vec_rt){
-                //         next_hop = r.getCurrentNextHopFT(dest);
-                //         curr_dest_cost_c1 = r.getFT().get(dest).get(next_hop).getCost();
-                //         curr_dest_state = r.getFT().get(dest).get(next_hop).getState();
-                //         vec_available.putInt(dest);
-                //         vec_available.putInt(curr_dest_cost_c1);
-                //         vec_available.putInt(curr_dest_state);
-                //     }
-                //     m = new UPDATE(5,r.getID(),neighbor,final_vec_rt.size(),vec_available.array());
-                //     if(!r.getLT().get(neighbor).getSocket().isClosed()){
-                //         r.getDCstats().pendingReplyUpdate(m);
-                //         r.send(out,m);
-                //     }
-                // }
             }
         } catch (Exception e) {
             r.printExceptionWithNeighbor(e,Router.translateID(r.getID()),Router.translateID(neighbor));

@@ -105,7 +105,7 @@ public class PendingReplyQueue implements Runnable{
                         }
                     }
                 }
-                TimeUnit.MILLISECONDS.sleep(Constants.TIMER_BASE / 10);
+                TimeUnit.MILLISECONDS.sleep(Constants.TIMER_BASE / 100);
             } catch (Exception e) {}
         }
     }   

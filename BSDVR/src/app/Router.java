@@ -26,6 +26,7 @@ public class Router {
     // Control Plane
     private Integer id;
     private Boolean dflag;
+    private Boolean rflag;
     private Boolean hflag;
     private Integer ucount;
     private Integer dcount;
@@ -33,6 +34,7 @@ public class Router {
     private ConcurrentHashMap<Integer, Neighbor> lt; // [neighbor_id -> link_state i.e timer]
     private ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>> ft; // [dest -> via_dv]
     private ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>> dvt; // [neighbor_id -> neighbor_dvs] 
+    private PendingReplyQueue prq;
     // Data Plane
     private ReentrantLock dphlock;
     private ReentrantLock uctlock;
@@ -51,6 +53,7 @@ public class Router {
         ucount = 0;
         dcount = 0;
         dflag = true;
+        rflag = true;
         hflag = false;
         // TODO: dtnet = null;
         id = Integer.parseInt(i);
@@ -58,6 +61,7 @@ public class Router {
         lt = new ConcurrentHashMap<Integer, Neighbor>();
         ft = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>>();
         dvt = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Vector>>();
+        prq = new PendingReplyQueue(this);
         // Data Plane
         dphlock = new ReentrantLock();
         uctlock = new ReentrantLock();
@@ -84,10 +88,11 @@ public class Router {
                 }
             }
         }).start();
+        // Pending Reply Queue
+        new Thread(prq).start();
     }
 
     // getters
-
     public Integer getID() {
         return id;
     }
@@ -96,6 +101,9 @@ public class Router {
     }
     public Tstat getDCstats(){
         return debug;
+    }
+    public Boolean getRFlag(){
+        return rflag;
     }
     public Integer getUCount(){
         return ucount;
@@ -111,6 +119,9 @@ public class Router {
     }
     public ReentrantLock getDPHLock(){
         return dphlock;
+    }
+    public PendingReplyQueue getPRQ(){
+        return prq;
     }
     public static Integer getPort(Integer id) {
         return Constants.PORT_MIN + (id - Constants.ID_MIN);
@@ -138,7 +149,12 @@ public class Router {
     }
 
     // methods
-
+    public void setRFlag(){
+        rflag = true;
+    }
+    public void unsetRFlag(){
+        rflag = false;
+    }
     public void setDataFlag(){
         dflag = true;
     }
@@ -423,6 +439,7 @@ public class Router {
         String[] in = {"ALL"};
         flushFileBuff(); // flushing data buffers
         disconnect(in);  // closing open connections
+        unsetRFlag();    // deactivate pending reply queue
         server.close();  // closing listening port
         System.out.println(Router.translateID(id) + " terminated !");
     }

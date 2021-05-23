@@ -28,14 +28,29 @@ public class PendingReplyQueue implements Runnable{
     //elements
     private Router router;
     private Integer curr_neighbor;
+    private Long prev_timestamp, curr_area;
     private ArrayList<Integer> curr_destinations;
     private ConcurrentLinkedQueue<Entry> reply_queue;
     //constructor    
     public PendingReplyQueue(Router r){
         router = r;
+        curr_area = 0L;
+        prev_timestamp = 0L;
         reply_queue = new ConcurrentLinkedQueue<Entry>();
     }
     //methods
+    public void init_timestamp(Long ts){
+        curr_area = 0L;
+        prev_timestamp = ts;
+    }
+    public synchronized Long getCurrArea(){return curr_area;}
+    public synchronized void update_growth(Integer old_size){
+        Long curr_time, timeElapsed;
+        curr_time = Instant.now().toEpochMilli();
+        timeElapsed = TimeUnit.MILLISECONDS.toMillis(curr_time - prev_timestamp);
+        prev_timestamp = curr_time;
+        curr_area += (old_size * timeElapsed);
+    }
     public synchronized void removeReply(){
         Entry tmp;
         Iterator<Entry> iter;
@@ -53,6 +68,7 @@ public class PendingReplyQueue implements Runnable{
                 curr_neighbor = tmp.getNeighbor();
                 curr_destinations = new ArrayList<Integer>();
                 for(Integer dest:tmp.getDestinations()){curr_destinations.add(dest);}
+                update_growth(reply_queue.size());
                 reply_queue.remove(tmp);
                 iter = reply_queue.iterator();
                 break;
@@ -63,6 +79,7 @@ public class PendingReplyQueue implements Runnable{
         if(destinations.size() > 0){
             Entry new_entry;
             new_entry = new Entry(timestamp, neighbor, destinations);
+            update_growth(reply_queue.size());
             reply_queue.add(new_entry);
         }
     }
